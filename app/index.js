@@ -7,16 +7,15 @@ const url = require('url');
 const http = require('http');
 const port = process.env.APP_PORT || 3001;
 
-const minfinSiteParser = require('./helpers/minfin-site.parser');
+const minFinSiteParser = require('./helpers/minfin-site.parser');
 
 const server = http.createServer();
 
-server.on('request', (req, res) => {
-  const exchangeRates = minfinSiteParser.getExchangeRates(url.parse(req.url,true).query);
-
+server.on('request', async (req, res) => {
+  const exchangeRates = await minFinSiteParser.getExchangeRates(url.parse(req.url,true).query);
 
   res.writeHead(200, {'Content-Type': 'application/json'});
-  res.write(JSON.stringify({a: 2}));
+  res.write(JSON.stringify(exchangeRates));
   res.end();
 });
 

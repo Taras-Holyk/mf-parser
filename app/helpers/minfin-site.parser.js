@@ -1,14 +1,30 @@
 const request = require('request-promise');
 const cheerio = require('cheerio');
 
-function getExchangeRates(params) {
+const currencies = [
+  {code: 'usd', index: 0},
+  {code: 'eur', index: 1},
+  {code: 'rub', index: 2},
+  {code: 'pln', index: 3},
+  {code: 'gbp', index: 4},
+  {code: 'chf', index: 5}
+];
+
+async function getExchangeRates(params) {
   const parseUrl = generateUrlForParsing(params);
-  const urlContent = getUrlContent(parseUrl);
-  console.log(urlContent);
+  const $ = await getUrlContent(parseUrl);
+  const exchangeRatesTable = $('.mfcur-table-lg-currency');
+  let exchangeRates = {};
+
+  for (const currency of currencies) {
+    exchangeRates[currency.code] = getCurrencyExchangeRates(exchangeRatesTable, currency);
+  }
+
+  return exchangeRates;
 }
 
 function generateUrlForParsing(params) {
-  let url = 'https://minfin.com.ua/currency/';
+  let url = 'https://minfin.com.ua/ua/currency/';
 
   if ('date' in params) {
     url += params.date;
@@ -17,7 +33,7 @@ function generateUrlForParsing(params) {
   return url;
 }
 
-async function getUrlContent(url) {
+function getUrlContent(url) {
   try {
     const options = {
       uri: url,
@@ -29,10 +45,40 @@ async function getUrlContent(url) {
       }
     };
 
-    return await request(options);
+    return request(options);
   } catch (e) {
     console.error(e);
   }
+}
+
+function getCurrencyExchangeRates(exchangeRatesTable, currency) {
+  let exchangeRates = {};
+
+  const tableCell = exchangeRatesTable.find('tbody')
+    .find('tr').eq(currency.index).find('td');
+
+  exchangeRates.cash = (function ([purchase, selling]) {
+    return {purchase, selling};
+  })(getTableCellContent(tableCell, 1));
+
+  exchangeRates.nbu = tableCell.eq(2)
+    .find('span.mfcur-nbu-full-wrap')
+    .contents().filter((index, element) => {
+      return element.nodeType === 3;
+    }).text().trim();
+
+  exchangeRates.black = (function ([purchase, selling]) {
+    return {purchase, selling};
+  })(getTableCellContent(tableCell, 3));
+
+  return exchangeRates;
+}
+
+function getTableCellContent(tableCell, index) {
+  return tableCell.eq(index)
+    .contents().filter((index, element) => {
+    return element.nodeType === 3;
+  }).text().trim().split(/\n+/);
 }
 
 module.exports = {getExchangeRates};
