@@ -14,10 +14,10 @@ async function getExchangeRates(params) {
   const parseUrl = generateUrlForParsing(params);
   const $ = await getUrlContent(parseUrl);
   const exchangeRatesTable = $('.mfcur-table-lg-currency');
-  let exchangeRates = {};
+  let exchangeRates = [];
 
   for (const currency of currencies) {
-    exchangeRates[currency.code] = getCurrencyExchangeRates(exchangeRatesTable, currency);
+    exchangeRates.push(getCurrencyExchangeRates(exchangeRatesTable, currency));
   }
 
   return exchangeRates;
@@ -56,6 +56,8 @@ function getCurrencyExchangeRates(exchangeRatesTable, currency) {
 
   const tableCell = exchangeRatesTable.find('tbody')
     .find('tr').eq(currency.index).find('td');
+
+  exchangeRates.title = tableCell.find('a').text().trim();
 
   exchangeRates.cash = (function ([purchase, selling]) {
     return {purchase, selling};
